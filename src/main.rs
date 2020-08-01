@@ -5,6 +5,30 @@ use std::env;
 extern crate cc9rust;
 use cc9rust::strtol;
 
+#[derive(Debug, PartialEq)]
+enum TokenKind {
+    Sign, // 記号
+    Num,  // 整数トークン
+    Eof,  // 入力の終わりを表すトークン
+}
+
+// トークン型
+#[derive(Debug, PartialEq)]
+struct Token {
+    kind: TokenKind, // トークンの型
+    val: i64,        // kindがTK_NUMの場合、その数値
+    c: String,       // トークン文字列
+}
+impl Token {
+    pub fn new() -> Self {
+        Token {
+            kind: TokenKind::Sign,
+            val: 0,
+            c: String::new(),
+        }
+    }
+}
+
 fn main() -> Result<(), i32> {
     env::set_var("RUST_LOG", "error");
     env_logger::init();
@@ -16,6 +40,8 @@ fn main() -> Result<(), i32> {
     println!(".intel_syntax noprefix");
     println!(".globl main");
     println!("main:");
+
+    //let token = tokenize(&argv[1]);
 
     let (v, s) = strtol(&args[1]);
     if let Some(t) = v {
@@ -39,14 +65,49 @@ fn main() -> Result<(), i32> {
             remain = s;
             continue;
         }
-        error!("Unexpected char: {}", c);
-        return Err(1);
     }
 
     println!("  ret");
     Ok(())
 }
 
+//let token = tokenize("12 + 2 - 4");
+fn tokenize(s: String) -> Vec<Token> {
+    let mut sentence = s;
+    let mut tokens = vec![];
+    while let Some(c) = sentence.chars().next() {
+        //print!("{}", c);
+        if c.is_whitespace() {
+            // next char
+            sentence = sentence.split_off(1);
+            continue;
+        }
+        if c == '+' || c == '-' {
+            let token = Token {
+                kind: TokenKind::Sign,
+                c: sentence.clone(),
+                val: 0,
+            };
+            tokens.push(token);
+            sentence = sentence.split_off(1);
+            continue;
+        }
+        if c.is_numeric() {
+            let (v, s) = strtol(&sentence);
+            let token = Token {
+                kind: TokenKind::Num,
+                c: sentence.clone(),
+                val: v.unwrap(),
+            };
+            tokens.push(token);
+            sentence = s.to_string();
+            continue;
+        }
+        error!("Unexpected char: {}", c);
+    }
+    println!("{:?}", tokens);
+    tokens
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,7 +117,6 @@ mod tests {
     }
     #[test]
     fn test_strtol() {
-        init();
         //(123, "+20") = strtol("123+20")
         let (v, s) = strtol("123+20");
         assert_eq!(v.unwrap(), 123);
@@ -65,5 +125,30 @@ mod tests {
         let (v, s) = strtol(&s[1..]); //20
         assert_eq!(v.unwrap(), 20);
         assert_eq!(s, "");
+        //(None, "") = strtol("")
+        let (v, s) = strtol("");
+        assert_eq!(v, None);
+        assert_eq!(s, "");
+    }
+    #[test]
+    fn test_tokenize() {
+        let tokens = tokenize("12 + 2 - 4".to_string());
+        assert_eq!(tokens.len(), 5);
+        assert_eq!(
+            tokens[0],
+            Token {
+                kind: TokenKind::Num,
+                val: 12,
+                c: "12 + 2 - 4".to_string(),
+            }
+        );
+        assert_eq!(
+            tokens[3],
+            Token {
+                kind: TokenKind::Sign,
+                val: 0,
+                c: "- 4".to_string(),
+            }
+        );
     }
 }

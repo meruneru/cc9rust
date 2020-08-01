@@ -4,8 +4,7 @@ extern crate log;
 /// str to long
 ///
 /// ```
-/// use super::*;
-/// let (v, s) = strtol("123+20");
+/// let (v, s) = cc9rust::strtol("123+20");
 /// assert_eq!(v.unwrap(), 123);
 /// assert_eq!(s, "+20");
 /// ```
