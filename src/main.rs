@@ -6,22 +6,47 @@ fn main() -> Result<(), i32> {
     env::set_var("RUST_LOG", "error");
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
+    if args.len() != 2 || args[1].is_empty() {
         error!("Command Line: {:?}", args);
         return Err(1);
     }
-    info!("{:?} {}", args, args.len());
     println!(".intel_syntax noprefix");
     println!(".globl main");
     println!("main:");
-    println!("  mov rax, {}", args[1]);
+
+    let (v, s) = strtol(&args[1]);
+    if let Some(t) = v {
+        println!("  mov rax, {}", t);
+    }
+    let mut remain = s;
+    while let Some(c) = remain.chars().nth(0) {
+        if c == '+' {
+            let (v, s) = strtol(&remain[1..]);
+            if let Some(t) = v {
+                println!("  add rax, {}", t);
+            }
+            remain = s;
+            continue;
+        }
+        if c == '-' {
+            let (v, s) = strtol(&remain[1..]);
+            if let Some(t) = v {
+                println!("  sub rax, {}", t);
+            }
+            remain = s;
+            continue;
+        }
+        error!("Unexpected char: {}", c);
+        return Err(1);
+    }
+
     println!("  ret");
     Ok(())
 }
 
 /// strtol
 /// str to long
-/// 
+///
 /// ```
 /// use super::*;
 /// let (v, s) = strtol("123+20");

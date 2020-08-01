@@ -17,7 +17,9 @@ assert(){
     fi
 }
 
+# assert <expected> <input>
 assert 0 0
 assert 123 123
+assert 25 '10+40-25'
 
 echo OK
