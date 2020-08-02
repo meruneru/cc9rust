@@ -19,15 +19,6 @@ struct Token {
     val: i64,        // kindがTK_NUMの場合、その数値
     c: String,       // トークン文字列
 }
-impl Token {
-    pub fn new() -> Self {
-        Token {
-            kind: TokenKind::Sign,
-            val: 0,
-            c: String::new(),
-        }
-    }
-}
 
 fn main() -> Result<(), i32> {
     env::set_var("RUST_LOG", "error");
@@ -105,16 +96,19 @@ fn tokenize(s: String) -> Vec<Token> {
         }
         error!("Unexpected char: {}", c);
     }
+    // EOF
+    let token = Token {
+        kind: TokenKind::Eof,
+        c: sentence.clone(),
+        val: 0,
+    };
+    tokens.push(token);
     println!("{:?}", tokens);
     tokens
 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn init() {
-        env::set_var("RUST_LOG", "trace");
-        env_logger::init();
-    }
     #[test]
     fn test_strtol() {
         //(123, "+20") = strtol("123+20")
@@ -133,7 +127,7 @@ mod tests {
     #[test]
     fn test_tokenize() {
         let tokens = tokenize("12 + 2 - 4".to_string());
-        assert_eq!(tokens.len(), 5);
+        assert_eq!(tokens.len(), 6); // Eof included
         assert_eq!(
             tokens[0],
             Token {
@@ -143,11 +137,11 @@ mod tests {
             }
         );
         assert_eq!(
-            tokens[3],
+            tokens[1],
             Token {
                 kind: TokenKind::Sign,
                 val: 0,
-                c: "- 4".to_string(),
+                c: "+ 2 - 4".to_string(),
             }
         );
     }
