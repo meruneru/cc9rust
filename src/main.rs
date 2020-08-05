@@ -32,39 +32,26 @@ fn main() -> Result<(), i32> {
     println!(".globl main");
     println!("main:");
 
-    //let token = tokenize(&argv[1]);
+    let tokens = tokenize(args[1].clone());
+    let mut i = 0;
+    println!("  mov rax, {}", expect_number(&tokens, &mut i));
 
-    let (v, s) = strtol(&args[1]);
-    if let Some(t) = v {
-        println!("  mov rax, {}", t);
-    }
-    let mut remain = s;
-    while let Some(c) = remain.chars().nth(0) {
-        if c == '+' {
-            let (v, s) = strtol(&remain[1..]);
-            if let Some(t) = v {
-                println!("  add rax, {}", t);
-            }
-            remain = s;
+    while at_eof(&tokens, &i) == false {
+        if consume(&tokens, &mut i, '+' as i64) {
+            println!("  add rax, {}", expect_number(&tokens, &mut i));
             continue;
         }
-        if c == '-' {
-            let (v, s) = strtol(&remain[1..]);
-            if let Some(t) = v {
-                println!("  sub rax, {}", t);
-            }
-            remain = s;
-            continue;
-        }
-    }
 
+        expect(&tokens, &mut i, '-' as i64);
+        println!("  sub rax, {}", expect_number(&tokens, &mut i));
+    }
     println!("  ret");
     Ok(())
 }
 
 //let token = tokenize("12 + 2 - 4");
 fn tokenize(s: String) -> Vec<Token> {
-    let mut sentence = s;
+    let mut sentence = s.clone();
     let mut tokens = vec![];
     while let Some(c) = sentence.chars().next() {
         //print!("{}", c);
@@ -77,7 +64,7 @@ fn tokenize(s: String) -> Vec<Token> {
             let token = Token {
                 kind: TokenKind::Sign,
                 c: sentence.clone(),
-                val: 0,
+                val: c as i64,
             };
             tokens.push(token);
             sentence = sentence.split_off(1);
@@ -103,9 +90,40 @@ fn tokenize(s: String) -> Vec<Token> {
         val: 0,
     };
     tokens.push(token);
-    println!("{:?}", tokens);
     tokens
 }
+
+// 次のtokenが期待しているopの場合、読み進めて真を返す
+fn consume(tokens: &Vec<Token>, i: &mut usize, op: i64) -> bool {
+    if tokens[*i].kind != TokenKind::Sign || tokens[*i].val != op {
+        return false;
+    }
+    *i += 1;
+    true
+}
+
+// 次のtokenが期待しているopの場合、読み進める
+fn expect(tokens: &Vec<Token>, i: &mut usize, op: i64) {
+    if tokens[*i].kind != TokenKind::Sign || tokens[*i].val != op {
+        panic!("not a operand!");
+    }
+    *i += 1;
+}
+
+// 次のtokenが数値の場合、読み進めてその数値を返す
+fn expect_number(tokens: &Vec<Token>, i: &mut usize) -> i64 {
+    if tokens[*i].kind != TokenKind::Num {
+        panic!("not a number!");
+    }
+    let val = tokens[*i].val;
+    *i += 1;
+    val
+}
+
+fn at_eof(tokens: &Vec<Token>, i: &usize) -> bool {
+    tokens[*i].kind == TokenKind::Eof
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,7 +145,7 @@ mod tests {
     #[test]
     fn test_tokenize() {
         let tokens = tokenize("12 + 2 - 4".to_string());
-        assert_eq!(tokens.len(), 6); // Eof included
+        assert_eq!(tokens.len(), 6);
         assert_eq!(
             tokens[0],
             Token {
@@ -140,7 +158,7 @@ mod tests {
             tokens[1],
             Token {
                 kind: TokenKind::Sign,
-                val: 0,
+                val: '+' as i64,
                 c: "+ 2 - 4".to_string(),
             }
         );
