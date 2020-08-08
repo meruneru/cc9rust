@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 use std::env;
-
+use std::process::exit;
 extern crate cc9rust;
 use cc9rust::strtol;
 
@@ -105,7 +105,7 @@ fn consume(tokens: &Vec<Token>, i: &mut usize, op: i64) -> bool {
 // 次のtokenが期待しているopの場合、読み進める
 fn expect(tokens: &Vec<Token>, i: &mut usize, op: i64) {
     if tokens[*i].kind != TokenKind::Sign || tokens[*i].val != op {
-        panic!("not a operand!");
+        error_at(&tokens, *i, "expected a operand");
     }
     *i += 1;
 }
@@ -113,7 +113,7 @@ fn expect(tokens: &Vec<Token>, i: &mut usize, op: i64) {
 // 次のtokenが数値の場合、読み進めてその数値を返す
 fn expect_number(tokens: &Vec<Token>, i: &mut usize) -> i64 {
     if tokens[*i].kind != TokenKind::Num {
-        panic!("not a number!");
+        error_at(&tokens, *i, "expected a number");
     }
     let val = tokens[*i].val;
     *i += 1;
@@ -122,6 +122,16 @@ fn expect_number(tokens: &Vec<Token>, i: &mut usize) -> i64 {
 
 fn at_eof(tokens: &Vec<Token>, i: &usize) -> bool {
     tokens[*i].kind == TokenKind::Eof
+}
+
+// 文法エラー位置を出力する
+fn error_at(tokens: &Vec<Token>, loc: usize, estr: &str) {
+    let _pos = tokens[0].c.len() - tokens[loc].c.len();
+    eprintln!("{}", tokens[0].c);
+    eprint!("{}", " ".repeat(_pos));
+    eprint!("{}", "^");
+    eprintln!("{}", estr);
+    exit(1);
 }
 
 #[cfg(test)]
